@@ -44,9 +44,6 @@ export default async function DashboardPage() {
           <h1 className="text-3xl font-extrabold tracking-tight mt-3 text-white">
             {t.liveEnterpriseDashboard}
           </h1>
-          <p className="text-stone-300 text-sm mt-1">
-            {t.dashboardSubtitle}
-          </p>
         </div>
         <div>
           <a
