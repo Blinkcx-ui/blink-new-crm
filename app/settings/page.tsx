@@ -78,11 +78,16 @@ export default async function SettingsPage() {
       const dbUser = (prisma as any).user || (prisma as any).User;
       if (dbUser) {
         await dbUser.create({
-          data: { name, email, role: role || 'AGENT', passwordHash: 'secure_placeholder' },
+          data: { 
+            name, 
+            email, 
+            role: role || 'AGENT', 
+            passwordHash: `placeholder_${Date.now()}` // Ensures uniqueness per user creation
+          },
         });
       }
     } catch (e) {
-      console.error(e);
+      console.error('User creation error:', e);
     }
     revalidatePath('/settings');
   }
