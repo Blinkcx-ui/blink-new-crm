@@ -82,7 +82,7 @@ export default async function SettingsPage() {
             name, 
             email, 
             role: role || 'AGENT', 
-            passwordHash: `placeholder_${Date.now()}` // Ensures uniqueness per user creation
+            password: `placeholder_${Date.now()}` // Matches schema.prisma field name
           },
         });
       }
