@@ -23,7 +23,12 @@ async function handleCreateCustomer(formData: FormData) {
   try {
     const dbCustomer = (prisma as any).customer || (prisma as any).Customer;
     if (dbCustomer) {
-      const existing = await dbCustomer.findFirst({ where: { mobile } });
+      let client = await prisma.client.findFirst();
+      if (!client) {
+        client = await prisma.client.create({ data: { name: 'Default Enterprise', slug: 'default-enterprise-' + Date.now() } });
+      }
+
+      const existing = await dbCustomer.findFirst({ where: { mobile, clientId: client.id } });
       if (existing) {
         console.error('Customer with this mobile number already exists.');
         return;
@@ -35,6 +40,7 @@ async function handleCreateCustomer(formData: FormData) {
           mobile,
           email: email || '',
           assignedTo: assignedTo || 'Unassigned',
+          clientId: client.id,
         },
       });
     }
@@ -45,13 +51,17 @@ async function handleCreateCustomer(formData: FormData) {
   revalidatePath('/customers');
 }
 
-export default async function CustomersPage() {
+export default async function CustomersPage({ searchParams }: { searchParams: { profile?: string, search?: string } }) {
   const cookieStore = await cookies();
   const lang = cookieStore.get('NEXT_LOCALE')?.value || 'en';
   const t = translations[lang] || translations.en;
 
   let customers: any[] = [];
   let users: any[] = [];
+  let selectedCustomer: any = null;
+  let customerTickets: any[] = [];
+
+  const profileId = searchParams?.profile || searchParams?.search;
 
   try {
     const dbCustomer = (prisma as any).customer || (prisma as any).Customer;
@@ -59,6 +69,21 @@ export default async function CustomersPage() {
       customers = await dbCustomer.findMany({
         orderBy: { createdAt: 'desc' },
       });
+
+      if (profileId) {
+        selectedCustomer = await dbCustomer.findFirst({
+          where: {
+            OR: [
+              { id: profileId },
+              { mobile: profileId }
+            ]
+          },
+          include: { tickets: true }
+        });
+        if (selectedCustomer?.tickets) {
+          customerTickets = selectedCustomer.tickets;
+        }
+      }
     }
 
     const dbUser = (prisma as any).user || (prisma as any).User;
@@ -92,6 +117,55 @@ export default async function CustomersPage() {
           </a>
         </div>
       </div>
+
+      {/* Selected Customer 360 Profile Modal / Card */}
+      {selectedCustomer && (
+        <div className="bg-orange-50 border-2 border-[#FF7A00] p-6 rounded-2xl shadow-md space-y-4">
+          <div className="flex justify-between items-center border-b border-orange-200 pb-3">
+            <div>
+              <span className="text-xs font-bold text-[#FF7A00] uppercase tracking-wider">Customer 360 Profile View</span>
+              <h2 className="text-2xl font-bold text-stone-900 mt-1">{selectedCustomer.name}</h2>
+            </div>
+            <a href="/customers" className="text-sm bg-white border border-stone-300 px-3 py-1.5 rounded-xl text-stone-700 hover:bg-stone-100 font-medium">
+              Close Profile ✕
+            </a>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div>
+              <span className="text-stone-500 text-xs block uppercase font-semibold">Mobile Number</span>
+              <span className="font-mono font-bold text-stone-900">{selectedCustomer.mobile}</span>
+            </div>
+            <div>
+              <span className="text-stone-500 text-xs block uppercase font-semibold">Email Address</span>
+              <span className="text-stone-900">{selectedCustomer.email || 'N/A'}</span>
+            </div>
+            <div>
+              <span className="text-stone-500 text-xs block uppercase font-semibold">Assigned Agent</span>
+              <span className="text-stone-900 font-medium">{selectedCustomer.assignedTo || 'Unassigned'}</span>
+            </div>
+          </div>
+
+          <div className="mt-4 pt-4 border-t border-orange-200">
+            <h4 className="text-xs font-bold text-stone-700 uppercase tracking-wider mb-2">Customer Interaction History ({customerTickets.length} Tickets)</h4>
+            {customerTickets.length > 0 ? (
+              <div className="space-y-2">
+                {customerTickets.map((tk: any) => (
+                  <div key={tk.id} className="bg-white p-3 rounded-xl border border-orange-200 flex justify-between items-center text-xs">
+                    <div>
+                      <span className="font-mono font-bold text-[#FF7A00]">{tk.ticketRef}</span>
+                      <span className="ml-2 font-semibold text-stone-900">{tk.description || tk.mainCategory}</span>
+                    </div>
+                    <span className="bg-orange-100 text-orange-800 px-2 py-0.5 rounded font-bold">{tk.status}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-stone-500">No support tickets recorded for this customer yet.</p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Customer Creation Form */}
       <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-6">
@@ -165,7 +239,12 @@ export default async function CustomersPage() {
                   <td className="py-3 px-3 text-stone-600 text-xs">{c.email || 'N/A'}</td>
                   <td className="py-3 px-3 text-stone-700">{c.assignedTo}</td>
                   <td className="py-3 px-3 text-right">
-                    <button className="text-[#FF7A00] font-medium hover:underline text-xs">View Profile</button>
+                    <a 
+                      href={`/customers?profile=${c.id}`} 
+                      className="text-[#FF7A00] font-medium hover:underline text-xs bg-orange-50 px-3 py-1 rounded-lg border border-orange-100 inline-block"
+                    >
+                      View Profile
+                    </a>
                   </td>
                 </tr>
               ))}

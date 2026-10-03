@@ -202,7 +202,6 @@ export default async function TicketsPage() {
                 </select>
               </div>
 
-              {/* All 4 Category Inputs Restored */}
               <div>
                 <label className="block text-xs font-semibold text-stone-700 uppercase mb-1">{lang === 'ar' ? 'التصنيف الأول' : 'Category 1'}</label>
                 <input type="text" name="category1" placeholder="e.g. Technical" className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm bg-white text-stone-900 focus:outline-none focus:border-[#FF7A00]" />
@@ -301,7 +300,7 @@ export default async function TicketsPage() {
                   <td className="py-3 px-3 text-stone-700">{t.assignedAgent?.name || 'Unassigned'}</td>
                   <td className="py-3 px-3 text-right">
                     <a 
-                      href={`/customers?mobile=${encodeURIComponent(t.customer?.mobile || '')}`} 
+                      href={`/customers?profile=${t.customer?.id || ''}`} 
                       className="text-[#FF7A00] font-medium hover:underline text-xs bg-orange-50 px-3 py-1 rounded-lg border border-orange-100 inline-block"
                     >
                       {lang === 'ar' ? 'عرض الملف' : 'View Profile'}
