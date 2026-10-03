@@ -1,0 +1,224 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  SUPER_ADMIN
+  OWNER
+  SUPERVISOR
+  AGENT
+}
+
+enum TicketStatus {
+  OPEN
+  PENDING
+  ESCALATED_L1
+  ESCALATED_L2
+  SOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum ChannelType {
+  WHATSAPP
+  INSTAGRAM
+  X_TWITTER
+  GOOGLE_REVIEWS
+  VOICE_CALL
+  EMAIL
+}
+
+enum CallStatus {
+  IN_PROGRESS
+  COMPLETED
+  MISSED
+  DROPPED
+  TRANSFERED
+}
+
+model Client {
+  id               String            @id @default(uuid())
+  name             String
+  slug             String            @unique
+  logoUrl          String?
+  logoChar         String            @default("C")
+  googleReviewUrl  String?
+  surveyUrl        String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  users            User[]
+  socialAccounts   SocialAccount[]
+  customers        Customer[]
+  tickets          Ticket[]
+  callLogs         CallLog[]
+  liveCalls        LiveCallSession[]
+  aiIntegrations   AiIntegration[]
+  surveyResponses  SurveyResponse[]
+  escalationMatrix EscalationRule[]
+}
+
+model User {
+  id              String            @id @default(uuid())
+  email           String            @unique
+  password        String
+  name            String
+  role            Role              @default(AGENT)
+  clientId        String?
+  client          Client?           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  
+  assignedTickets Ticket[]          @relation("AssignedAgent")
+  createdTickets  Ticket[]          @relation("CreatedBy")
+  callLogs        CallLog[]
+  monitoredCalls  LiveCallSession[] @relation("SupervisorMonitoring")
+  activeSession   LiveCallSession?  @relation("ActiveAgentCall")
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+model SocialAccount {
+  id          String      @id @default(uuid())
+  platform    ChannelType
+  platformId  String
+  accessToken String?
+  isActive    Boolean     @default(true)
+  clientId    String
+  client      Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt   DateTime    @default(now())
+}
+
+model AiIntegration {
+  id           String   @id @default(uuid())
+  provider     String
+  apiKey       String
+  modelName    String   @default("gpt-4o")
+  systemPrompt String?  @db.Text
+  isEnabled    Boolean  @default(true)
+  clientId     String
+  client       Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model EscalationRule {
+  id           String   @id @default(uuid())
+  level        Int
+  triggerHours Int
+  targetRole   Role
+  notifyEmail  String?
+  clientId     String
+  client       Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model Customer {
+  id              String           @id @default(uuid())
+  name            String
+  mobile          String
+  email           String?
+  city            String?
+  branch          String?
+  customerType    String           @default("Standard")
+  sentimentScore  Float            @default(0.0)
+  clientId        String
+  client          Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  tickets         Ticket[]
+  callLogs        CallLog[]
+  surveyResponses SurveyResponse[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@unique([mobile, clientId])
+}
+
+model Ticket {
+  id              String         @id @default(uuid())
+  ticketRef       String         @unique
+  status          TicketStatus   @default(OPEN)
+  priority        TicketPriority @default(MEDIUM)
+  source          ChannelType
+  department      String
+  ticketType      String
+  mainCategory    String
+  subCategory     String?
+  description     String         @db.Text
+  employeeNotes   String?        @db.Text
+  customFields    Json?          
+
+  customerId      String
+  customer        Customer       @relation(fields: [customerId], references: [id])
+  
+  assignedAgentId String?
+  assignedAgent   User?          @relation("AssignedAgent", fields: [assignedAgentId], references: [id])
+  
+  createdById     String
+  createdBy       User           @relation("CreatedBy", fields: [createdById], references: [id])
+
+  clientId        String
+  client          Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  closeDate       DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model CallLog {
+  id           String     @id @default(uuid())
+  callType     String
+  durationSec  Int        @default(0)
+  status       CallStatus @default(COMPLETED)
+  recordingUrl String?
+  summary      String?    @db.Text
+  
+  customerId   String
+  customer     Customer   @relation(fields: [customerId], references: [id])
+  
+  agentId      String
+  agent        User       @relation(fields: [agentId], references: [id])
+
+  clientId     String
+  client       Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  createdAt    DateTime   @default(now())
+}
+
+model LiveCallSession {
+  id           String   @id @default(uuid())
+  roomSid      String   @unique
+  status       String   @default("ACTIVE")
+  
+  agentId      String   @unique
+  agent        User     @relation("ActiveAgentCall", fields: [agentId], references: [id])
+  
+  supervisorId String?
+  supervisor   User?    @relation("SupervisorMonitoring", fields: [supervisorId], references: [id])
+
+  clientId     String
+  client       Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  startedAt    DateTime @default(now())
+}
+
+model SurveyResponse {
+  id         String   @id @default(uuid())
+  npsScore   Int
+  feedback   String?  @db.Text
+  
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id])
+
+  clientId   String
+  client     Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime @default(now())
+}
