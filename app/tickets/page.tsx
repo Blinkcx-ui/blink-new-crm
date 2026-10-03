@@ -47,7 +47,6 @@ export default async function TicketsPage() {
     const category2 = formData.get('category2') as string;
     const category3 = formData.get('category3') as string;
     const category4 = formData.get('category4') as string;
-    const source = formData.get('source') as string;
     const description = formData.get('description') as string;
     const closedBy = formData.get('closedBy') as string;
     const solution = formData.get('solution') as string;
@@ -86,7 +85,6 @@ export default async function TicketsPage() {
       await prisma.ticket.create({
         data: {
           ticketRef: `TICK-${Date.now().toString().slice(-6)}`,
-          source: source || 'CALL_CENTER',
           department: category1 || 'General Support',
           ticketType: ticketType || 'INQUIRY',
           mainCategory: category1 || 'General',
