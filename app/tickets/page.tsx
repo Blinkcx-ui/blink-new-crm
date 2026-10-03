@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, ChannelType } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { translations } from '@/lib/translations';
@@ -47,6 +47,7 @@ export default async function TicketsPage() {
     const category2 = formData.get('category2') as string;
     const category3 = formData.get('category3') as string;
     const category4 = formData.get('category4') as string;
+    const sourceVal = (formData.get('source') as string) || 'CALL_CENTER';
     const description = formData.get('description') as string;
     const closedBy = formData.get('closedBy') as string;
     const solution = formData.get('solution') as string;
@@ -85,6 +86,7 @@ export default async function TicketsPage() {
       await prisma.ticket.create({
         data: {
           ticketRef: `TICK-${Date.now().toString().slice(-6)}`,
+          source: sourceVal as ChannelType,
           department: category1 || 'General Support',
           ticketType: ticketType || 'INQUIRY',
           mainCategory: category1 || 'General',
