@@ -10,10 +10,12 @@ if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 export const dynamic = 'force-dynamic';
 
-export default async function TicketsPage() {
+export default async function TicketsPage({ searchParams }: { searchParams: Promise<{ action?: string }> }) {
   const cookieStore = await cookies();
   const lang = cookieStore.get('NEXT_LOCALE')?.value || 'en';
   const t = translations[lang] || translations.en;
+  const resolvedSearchParams = await searchParams;
+  const showCreateForm = resolvedSearchParams?.action === 'new';
 
   let tickets: any[] = [];
   let users: any[] = [];
@@ -131,6 +133,7 @@ export default async function TicketsPage() {
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-16 text-stone-950">
+      {/* Top Banner with Corner Action Button */}
       <div className="bg-[#2D2D2D] border-l-4 border-[#FF7A00] rounded-2xl p-8 text-white shadow-xl flex items-center justify-between">
         <div>
           <span className="bg-[#FF7A00]/20 text-[#FF7A00] text-xs font-semibold px-3 py-1 rounded-full border border-[#FF7A00]/30">
@@ -141,13 +144,148 @@ export default async function TicketsPage() {
           </h1>
           <p className="text-stone-300 text-sm mt-1">
             {lang === 'ar' 
-              ? 'إنشاء، تتبع، وحل التذاكر مع مستويات تصنيف متعددة وحفظ مباشر في قاعدة البيانات.' 
-              : 'Create, track, and resolve tickets with multi-level category dependencies and live database persistence.'}
+              ? 'إدارة ومتابعة جميع تذاكر العملاء والطلبات النشطة.' 
+              : 'Manage, track, and resolve active customer tickets in real-time.'}
           </p>
+        </div>
+        <div>
+          <Link
+            href={showCreateForm ? '/tickets' : '/tickets?action=new'}
+            className="bg-[#FF7A00] hover:bg-[#e06c00] text-white font-bold px-6 py-3 rounded-xl transition text-sm shadow-lg flex items-center gap-2"
+          >
+            {showCreateForm 
+              ? (lang === 'ar' ? 'إغلاق النموذج' : 'Close Form') 
+              : (lang === 'ar' ? '+ إنشاء تذكرة جديدة' : '+ Create New Ticket')}
+          </Link>
         </div>
       </div>
 
-      {/* Tickets Table Section (Main Focus) */}
+      {/* Conditionally Displayed Creation Form (Tucked in Corner / Toggle) */}
+      {showCreateForm && (
+        <div className="bg-white p-6 rounded-2xl border-2 border-[#FF7A00]/40 shadow-lg space-y-6 animate-fadeIn">
+          <div className="flex justify-between items-center border-b border-stone-100 pb-3">
+            <h3 className="text-lg font-bold text-stone-950">
+              {lang === 'ar' ? 'إنشاء تذكرة مؤسسية جديدة' : 'Create New Enterprise Ticket'}
+            </h3>
+            <Link href="/tickets" className="text-xs text-stone-400 hover:text-stone-700">✕ Close</Link>
+          </div>
+
+          <form action={handleCreateTicket} className="space-y-6">
+            <div>
+              <h4 className="text-xs font-bold text-[#FF7A00] uppercase tracking-wider mb-3">
+                {lang === 'ar' ? '1. معلومات العميل' : '1. Customer Information'}
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-stone-800 uppercase mb-1">{t.customerName}</label>
+                  <input type="text" name="customerName" required placeholder="Full Name" className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm bg-white text-stone-950 font-medium focus:outline-none focus:border-[#FF7A00]" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-stone-800 uppercase mb-1">{t.mobile}</label>
+                  <input type="text" name="customerMobile" required placeholder="+966 50 000 0000" className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm bg-white text-stone-950 font-medium focus:outline-none focus:border-[#FF7A00]" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-stone-800 uppercase mb-1">{t.email}</label>
+                  <input type="email" name="customerEmail" placeholder="customer@domain.com" className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm bg-white text-stone-950 font-medium focus:outline-none focus:border-[#FF7A00]" />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-xs font-bold text-[#FF7A00] uppercase tracking-wider mb-3">
+                {lang === 'ar' ? '2. تفاصيل التذكرة والتوجيه' : '2. Ticket Details & Routing'}
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-stone-800 uppercase mb-1">{lang === 'ar' ? 'عنوان التذكرة' : 'Ticket Name'}</label>
+                  <input type="text" name="ticketName" defaultValue="New Ticket" className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm bg-white text-stone-950 font-medium focus:outline-none focus:border-[#FF7A00]" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-stone-800 uppercase mb-1">{lang === 'ar' ? 'نوع التذكرة' : 'Ticket Type'}</label>
+                  <select name="ticketType" className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm bg-white text-stone-950 font-medium focus:outline-none focus:border-[#FF7A00]">
+                    <option value="INQUIRY">{lang === 'ar' ? 'استفسار' : 'Inquiry'}</option>
+                    <option value="COMPLAINT">{lang === 'ar' ? 'شكوى' : 'Complaint'}</option>
+                    <option value="FOLLOW_UP">{lang === 'ar' ? 'متابعة' : 'Follow Up'}</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-stone-800 uppercase mb-1">{lang === 'ar' ? 'المدينة' : 'City'}</label>
+                  <select name="city" className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm bg-white text-stone-950 font-medium focus:outline-none focus:border-[#FF7A00]">
+                    {saudiCities.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-stone-800 uppercase mb-1">{t.status}</label>
+                  <select name="status" className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm bg-white text-stone-950 font-medium focus:outline-none focus:border-[#FF7A00]">
+                    <option value="OPEN">Open</option>
+                    <option value="PENDING">Pending</option>
+                    <option value="SOLVED">Solved</option>
+                    <option value="CLOSED">Closed</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-stone-800 uppercase mb-1">{lang === 'ar' ? 'التصنيف الأول' : 'Category 1'}</label>
+                  <input type="text" name="category1" placeholder="e.g. Technical" className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm bg-white text-stone-950 font-medium focus:outline-none focus:border-[#FF7A00]" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-stone-800 uppercase mb-1">{lang === 'ar' ? 'التصنيف الثاني' : 'Category 2'}</label>
+                  <input type="text" name="category2" placeholder="e.g. Network" className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm bg-white text-stone-950 font-medium focus:outline-none focus:border-[#FF7A00]" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-stone-800 uppercase mb-1">{lang === 'ar' ? 'التصنيف الثالث' : 'Category 3'}</label>
+                  <input type="text" name="category3" placeholder="e.g. Fiber" className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm bg-white text-stone-950 font-medium focus:outline-none focus:border-[#FF7A00]" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-stone-800 uppercase mb-1">{lang === 'ar' ? 'التصنيف الرابع' : 'Category 4'}</label>
+                  <input type="text" name="category4" placeholder="e.g. Outage" className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm bg-white text-stone-950 font-medium focus:outline-none focus:border-[#FF7A00]" />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-stone-800 uppercase mb-1">{lang === 'ar' ? 'قناة التذكرة' : 'Ticket Source'}</label>
+                  <select name="source" className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm bg-white text-stone-950 font-medium focus:outline-none focus:border-[#FF7A00]">
+                    {channels.map(ch => <option key={ch.key} value={ch.key}>{ch.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-stone-800 uppercase mb-1">{t.assignedTo}</label>
+                  <select name="assignedAgentId" className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm bg-white text-stone-950 font-medium focus:outline-none focus:border-[#FF7A00]">
+                    <option value="Unassigned">Unassigned</option>
+                    {users.map((u: any) => <option key={u.id} value={u.id}>{u.name} ({u.role})</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-stone-800 uppercase mb-1">{lang === 'ar' ? 'نوع الإغلاق' : 'Closed By'}</label>
+                  <select name="closedBy" className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm bg-white text-stone-950 font-medium focus:outline-none focus:border-[#FF7A00]">
+                    <option value="OPEN">Open / Active</option>
+                    <option value="FCR">FCR (First Contact Resolution)</option>
+                    <option value="ESCALATED">Escalated</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div>
+                  <label className="block text-xs font-bold text-stone-800 uppercase mb-1">{lang === 'ar' ? 'الوصف' : 'Description'}</label>
+                  <textarea name="description" rows={3} placeholder="Detailed ticket description..." className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm bg-white text-stone-950 font-medium focus:outline-none focus:border-[#FF7A00]" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-stone-800 uppercase mb-1">{lang === 'ar' ? 'حل التذكرة' : 'Ticket Solution'}</label>
+                  <textarea name="solution" rows={3} placeholder="Resolution notes..." className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm bg-white text-stone-950 font-medium focus:outline-none focus:border-[#FF7A00]" />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <button type="submit" className="bg-[#FF7A00] hover:bg-[#e06c00] text-white font-bold px-6 py-2.5 rounded-xl transition text-sm shadow">
+                {lang === 'ar' ? 'إنشاء تذكرة وحفظ العميل' : 'Create Live Ticket & Save Customer'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Active Tickets Table Section (Main Focus) */}
       <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-6">
         <div className="flex justify-between items-center border-b border-stone-100 pb-3">
           <h3 className="text-lg font-bold text-stone-950">
@@ -206,126 +344,6 @@ export default async function TicketsPage() {
             </tbody>
           </table>
         </div>
-      </div>
-
-      {/* Ticket Creation Form Section */}
-      <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-6">
-        <h3 className="text-lg font-bold text-stone-950 border-b border-stone-100 pb-3">
-          {lang === 'ar' ? 'إنشاء تذكرة مؤسسية جديدة' : 'Create New Enterprise Ticket'}
-        </h3>
-
-        <form action={handleCreateTicket} className="space-y-6">
-          <div>
-            <h4 className="text-xs font-bold text-[#FF7A00] uppercase tracking-wider mb-3">
-              {lang === 'ar' ? '1. معلومات العميل (يتم حفظه تلقائياً في قائمة العملاء)' : '1. Customer Information (Auto-saved to Customer 360)'}
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-stone-800 uppercase mb-1">{t.customerName}</label>
-                <input type="text" name="customerName" required placeholder="Full Name" className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm bg-white text-stone-950 font-medium focus:outline-none focus:border-[#FF7A00]" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-stone-800 uppercase mb-1">{t.mobile}</label>
-                <input type="text" name="customerMobile" required placeholder="+966 50 000 0000" className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm bg-white text-stone-950 font-medium focus:outline-none focus:border-[#FF7A00]" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-stone-800 uppercase mb-1">{t.email}</label>
-                <input type="email" name="customerEmail" placeholder="customer@domain.com" className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm bg-white text-stone-950 font-medium focus:outline-none focus:border-[#FF7A00]" />
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <h4 className="text-xs font-bold text-[#FF7A00] uppercase tracking-wider mb-3">
-              {lang === 'ar' ? '2. تفاصيل التذكرة والتوجيه' : '2. Ticket Details & Routing'}
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-stone-800 uppercase mb-1">{lang === 'ar' ? 'عنوان التذكرة' : 'Ticket Name'}</label>
-                <input type="text" name="ticketName" defaultValue="New Ticket" className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm bg-white text-stone-950 font-medium focus:outline-none focus:border-[#FF7A00]" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-stone-800 uppercase mb-1">{lang === 'ar' ? 'نوع التذكرة' : 'Ticket Type'}</label>
-                <select name="ticketType" className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm bg-white text-stone-950 font-medium focus:outline-none focus:border-[#FF7A00]">
-                  <option value="INQUIRY" className="text-stone-950">{lang === 'ar' ? 'استفسار' : 'Inquiry'}</option>
-                  <option value="COMPLAINT" className="text-stone-950">{lang === 'ar' ? 'شكوى' : 'Complaint'}</option>
-                  <option value="FOLLOW_UP" className="text-stone-950">{lang === 'ar' ? 'متابعة' : 'Follow Up'}</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-stone-800 uppercase mb-1">{lang === 'ar' ? 'المدينة (المملكة العربية السعودية)' : 'City (Saudi Arabia)'}</label>
-                <select name="city" className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm bg-white text-stone-950 font-medium focus:outline-none focus:border-[#FF7A00]">
-                  {saudiCities.map(c => <option key={c} value={c} className="text-stone-950">{c}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-stone-800 uppercase mb-1">{t.status}</label>
-                <select name="status" className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm bg-white text-stone-950 font-medium focus:outline-none focus:border-[#FF7A00]">
-                  <option value="OPEN" className="text-stone-950">{lang === 'ar' ? 'مفتوح' : 'Open'}</option>
-                  <option value="PENDING" className="text-stone-950">{lang === 'ar' ? 'معلق' : 'Pending'}</option>
-                  <option value="SOLVED" className="text-stone-950">{lang === 'ar' ? 'تم الحل' : 'Solved'}</option>
-                  <option value="CLOSED" className="text-stone-950">{lang === 'ar' ? 'مغلق' : 'Closed'}</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-stone-800 uppercase mb-1">{lang === 'ar' ? 'التصنيف الأول' : 'Category 1'}</label>
-                <input type="text" name="category1" placeholder="e.g. Technical" className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm bg-white text-stone-950 font-medium focus:outline-none focus:border-[#FF7A00]" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-stone-800 uppercase mb-1">{lang === 'ar' ? 'التصنيف الثاني (تابع)' : 'Category 2 (Dependency)'}</label>
-                <input type="text" name="category2" placeholder="e.g. Network" className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm bg-white text-stone-950 font-medium focus:outline-none focus:border-[#FF7A00]" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-stone-800 uppercase mb-1">{lang === 'ar' ? 'التصنيف الثالث (تابع)' : 'Category 3 (Dependency)'}</label>
-                <input type="text" name="category3" placeholder="e.g. Fiber" className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm bg-white text-stone-950 font-medium focus:outline-none focus:border-[#FF7A00]" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-stone-800 uppercase mb-1">{lang === 'ar' ? 'التصنيف الرابع (تابع)' : 'Category 4 (Dependency)'}</label>
-                <input type="text" name="category4" placeholder="e.g. Outage" className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm bg-white text-stone-950 font-medium focus:outline-none focus:border-[#FF7A00]" />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-stone-800 uppercase mb-1">{lang === 'ar' ? 'قناة التذكرة' : 'Ticket Source'}</label>
-                <select name="source" className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm bg-white text-stone-950 font-medium focus:outline-none focus:border-[#FF7A00]">
-                  {channels.map(ch => <option key={ch.key} value={ch.key} className="text-stone-950">{ch.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-stone-800 uppercase mb-1">{t.assignedTo}</label>
-                <select name="assignedAgentId" className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm bg-white text-stone-950 font-medium focus:outline-none focus:border-[#FF7A00]">
-                  <option value="Unassigned" className="text-stone-950">{lang === 'ar' ? 'غير مسند' : 'Unassigned'}</option>
-                  {users.map((u: any) => <option key={u.id} value={u.id} className="text-stone-950">{u.name} ({u.role})</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-stone-800 uppercase mb-1">{lang === 'ar' ? 'نوع الإغلاق (FCR / تصعيد)' : 'Closed By (Resolution Type)'}</label>
-                <select name="closedBy" className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm bg-white text-stone-950 font-medium focus:outline-none focus:border-[#FF7A00]">
-                  <option value="OPEN" className="text-stone-950">{lang === 'ar' ? 'مفتوح / نشط' : 'Open / Active'}</option>
-                  <option value="FCR" className="text-stone-950">{lang === 'ar' ? 'حل من أول اتصال (FCR)' : 'FCR (First Contact Resolution)'}</option>
-                  <option value="ESCALATED" className="text-stone-950">{lang === 'ar' ? 'تم التصعيد' : 'Escalated'}</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              <div>
-                <label className="block text-xs font-bold text-stone-800 uppercase mb-1">{lang === 'ar' ? 'الوصف' : 'Description'}</label>
-                <textarea name="description" rows={3} placeholder="Detailed ticket description..." className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm bg-white text-stone-950 font-medium focus:outline-none focus:border-[#FF7A00]" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-stone-800 uppercase mb-1">{lang === 'ar' ? 'حل التذكرة' : 'Ticket Solution'}</label>
-                <textarea name="solution" rows={3} placeholder="Resolution notes..." className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm bg-white text-stone-950 font-medium focus:outline-none focus:border-[#FF7A00]" />
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end">
-            <button type="submit" className="bg-[#FF7A00] hover:bg-[#e06c00] text-white font-bold px-6 py-2.5 rounded-xl transition text-sm shadow">
-              {lang === 'ar' ? 'إنشاء تذكرة وحفظ العميل' : 'Create Live Ticket & Save Customer'}
-            </button>
-          </div>
-        </form>
       </div>
     </div>
   );
