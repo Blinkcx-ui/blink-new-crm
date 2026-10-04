@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { translations } from '@/lib/translations';
+import WorkspaceDialpadClient from '@/components/WorkspaceDialpadClient';
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 const prisma = globalForPrisma.prisma || new PrismaClient();
@@ -261,40 +262,7 @@ export default async function WorkspacePage({
       </div>
 
       {/* 4. Right Sidebar: Telephony WebRTC Dialpad System */}
-      <div className="w-80 border-l border-stone-200 bg-stone-50 flex flex-col p-4 justify-between">
-        <div>
-          <div className="flex items-center justify-between border-b border-stone-200 pb-3 mb-4">
-            <h3 className="font-bold text-stone-900 text-sm">{lang === 'ar' ? 'لوحة الاتصال الهاتفي' : 'Telephony Dialpad'}</h3>
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" title="Twilio SIP Connected"></span>
-          </div>
-
-          <div className="bg-white border border-stone-300 rounded-xl p-3 mb-4 shadow-inner text-right">
-            <span className="text-xs text-stone-400 block font-mono">TWILIO / 3CX SIP</span>
-            <span className="text-xl font-mono font-bold text-stone-900 tracking-wider">+966 5...</span>
-          </div>
-
-          <div className="grid grid-cols-3 gap-2">
-            {['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'].map((digit) => (
-              <button
-                key={digit}
-                type="button"
-                className="bg-white border border-stone-200 hover:bg-orange-50 hover:border-[#FF7A00] hover:text-[#FF7A00] text-stone-800 font-bold py-3 rounded-xl text-base shadow-sm transition"
-              >
-                {digit}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="space-y-2 mt-4">
-          <button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-xs transition shadow">
-            {lang === 'ar' ? 'اتصال' : 'Dial / Call'}
-          </button>
-          <button className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 rounded-xl text-xs transition">
-            {lang === 'ar' ? 'إنهاء / كتم الصوت' : 'End Call / Mute'}
-          </button>
-        </div>
-      </div>
+      <WorkspaceDialpadClient lang={lang} />
 
     </div>
   );
