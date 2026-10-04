@@ -13,9 +13,11 @@
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
+    "@twilio/voice-sdk": "^2.18.5",
     "next": "15.5.27",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "twilio": "^6.1.2"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

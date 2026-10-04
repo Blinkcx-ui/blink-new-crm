@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { translations } from '@/lib/translations';
-import WorkspaceDialpadClient from '@/components/WorkspaceDialpadClient';
+import WorkspaceDialpadClient from '@/app/components/WorkspaceDialpadClient';
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 const prisma = globalForPrisma.prisma || new PrismaClient();
