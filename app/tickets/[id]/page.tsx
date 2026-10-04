@@ -24,7 +24,7 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
   try {
     ticket = await prisma.ticket.findUnique({
       where: { id: ticketId },
-      include: { customer: true, assignedAgent: true, client: true },
+      include: { customer: true, assignedAgent: true, createdBy: true, client: true },
     });
     users = await prisma.user.findMany();
   } catch (err) {
@@ -72,8 +72,8 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
         <Link href="/tickets" className="text-xs font-semibold text-stone-500 hover:text-[#FF7A00] transition">
           ← {lang === 'ar' ? 'العودة لقائمة التذاكر' : 'Back to Tickets'}
         </Link>
-        <span className="bg-orange-100 text-[#FF7A00] text-xs font-mono font-bold px-3 py-1 rounded-full">
-          {ticket.ticketRef}
+        <span className="bg-orange-100 text-[#FF7A00] text-xs font-mono font-bold px-3 py-1 rounded-full border border-orange-200">
+          Ref: {ticket.ticketRef}
         </span>
       </div>
 
@@ -82,30 +82,53 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
           <div>
             <h1 className="text-2xl font-black text-stone-900">{ticket.description || ticket.mainCategory}</h1>
             <p className="text-xs text-stone-500 mt-1">
-              {lang === 'ar' ? 'تم الإنشاء في:' : 'Created at:'} {new Date(ticket.createdAt).toLocaleString()}
+              {lang === 'ar' ? 'تم الإنشاء في:' : 'Created at:'} {new Date(ticket.createdAt).toLocaleString()} | {lang === 'ar' ? 'آخر تحديث:' : 'Updated at:'} {new Date(ticket.updatedAt).toLocaleString()}
             </p>
           </div>
-          <span className="bg-stone-100 text-stone-800 text-xs font-bold px-3 py-1 rounded-lg">
+          <span className="bg-orange-100 text-orange-900 text-xs font-extrabold px-3 py-1 rounded-lg">
             {ticket.status}
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+        {/* Full Details Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+          {/* Customer Card */}
           <div className="bg-stone-50 p-4 rounded-xl border border-stone-200 space-y-2">
-            <h3 className="text-xs font-bold text-[#FF7A00] uppercase">{lang === 'ar' ? 'معلومات العميل' : 'Customer Info'}</h3>
-            <p><strong className="text-stone-500">Name:</strong> {ticket.customer?.name}</p>
-            <p><strong className="text-stone-500">Mobile:</strong> {ticket.customer?.mobile}</p>
+            <h3 className="text-xs font-bold text-[#FF7A00] uppercase tracking-wider">{lang === 'ar' ? 'معلومات العميل' : 'Customer Info'}</h3>
+            <p><strong className="text-stone-500">Name:</strong> {ticket.customer?.name || 'N/A'}</p>
+            <p><strong className="text-stone-500">Mobile:</strong> {ticket.customer?.mobile || 'N/A'}</p>
+            <p><strong className="text-stone-500">Email:</strong> {ticket.customer?.email || 'N/A'}</p>
             <p><strong className="text-stone-500">City:</strong> {ticket.customer?.city || 'Riyadh'}</p>
           </div>
 
+          {/* Routing Card */}
           <div className="bg-stone-50 p-4 rounded-xl border border-stone-200 space-y-2">
-            <h3 className="text-xs font-bold text-[#FF7A00] uppercase">{lang === 'ar' ? 'التوجيه والإسناد' : 'Routing & Assignment'}</h3>
+            <h3 className="text-xs font-bold text-[#FF7A00] uppercase tracking-wider">{lang === 'ar' ? 'التوجيه والقناة' : 'Routing & Source'}</h3>
             <p><strong className="text-stone-500">Source:</strong> {ticket.source}</p>
             <p><strong className="text-stone-500">Type:</strong> {ticket.ticketType}</p>
+            <p><strong className="text-stone-500">Department:</strong> {ticket.department}</p>
+            <p><strong className="text-stone-500">Priority:</strong> {ticket.priority}</p>
+          </div>
+
+          {/* Assignment Card */}
+          <div className="bg-stone-50 p-4 rounded-xl border border-stone-200 space-y-2">
+            <h3 className="text-xs font-bold text-[#FF7A00] uppercase tracking-wider">{lang === 'ar' ? 'الإسناد والموظفين' : 'Assignment & Meta'}</h3>
             <p><strong className="text-stone-500">Assigned Agent:</strong> {ticket.assignedAgent?.name || 'Unassigned'}</p>
+            <p><strong className="text-stone-500">Created By:</strong> {ticket.createdBy?.name || 'System'}</p>
+            <p><strong className="text-stone-500">Main Category:</strong> {ticket.mainCategory}</p>
+            <p><strong className="text-stone-500">Sub Category:</strong> {ticket.subCategory || 'N/A'}</p>
           </div>
         </div>
 
+        {/* Employee Notes / Solution Display */}
+        {ticket.employeeNotes && (
+          <div className="bg-orange-50/50 border border-orange-100 p-4 rounded-xl space-y-1">
+            <h4 className="text-xs font-bold text-[#FF7A00] uppercase">{lang === 'ar' ? 'ملاحظات وحل الموظف' : 'Employee Notes & Solution'}</h4>
+            <p className="text-stone-800 text-sm whitespace-pre-wrap">{ticket.employeeNotes}</p>
+          </div>
+        )}
+
+        {/* Update Form */}
         <form action={handleUpdateTicket} className="border-t border-stone-100 pt-6 space-y-4">
           <h3 className="text-sm font-bold text-stone-900">{lang === 'ar' ? 'تحديث حالة وحل التذكرة' : 'Update Ticket Status & Solution'}</h3>
           
@@ -134,7 +157,7 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
           </div>
 
           <div className="flex justify-end">
-            <button type="submit" className="bg-[#FF7A00] hover:bg-[#e06c00] text-white font-medium px-6 py-2.5 rounded-xl transition text-sm shadow">
+            <button type="submit" className="bg-[#FF7A00] hover:bg-[#e06c00] text-white font-bold px-6 py-2.5 rounded-xl transition text-sm shadow">
               {lang === 'ar' ? 'حفظ التحديثات' : 'Save Updates'}
             </button>
           </div>
