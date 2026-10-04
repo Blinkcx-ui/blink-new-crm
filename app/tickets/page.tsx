@@ -47,7 +47,7 @@ export default async function TicketsPage() {
     const category2 = formData.get('category2') as string;
     const category3 = formData.get('category3') as string;
     const category4 = formData.get('category4') as string;
-    const sourceVal = (formData.get('source') as string) || 'CALL_CENTER';
+    const sourceVal = (formData.get('source') as string) || 'WHATSAPP';
     const description = formData.get('description') as string;
     const closedBy = formData.get('closedBy') as string;
     const solution = formData.get('solution') as string;
@@ -83,6 +83,11 @@ export default async function TicketsPage() {
         });
       }
 
+      let validStatus: any = 'OPEN';
+      if (['OPEN', 'PENDING', 'ESCALATED_L1', 'ESCALATED_L2', 'SOLVED', 'CLOSED'].includes(status)) {
+        validStatus = status;
+      }
+
       await prisma.ticket.create({
         data: {
           ticketRef: `TICK-${Date.now().toString().slice(-6)}`,
@@ -90,10 +95,11 @@ export default async function TicketsPage() {
           department: category1 || 'General Support',
           ticketType: ticketType || 'INQUIRY',
           mainCategory: category1 || 'General',
-          subCategory: category2 ? `${category2} / ${category3 || ''} / ${category4 || ''}` : null,
+          subCategory: category2 ? [category2, category3, category4].filter(Boolean).join(' / ') : null,
           description: description ? `${ticketName}: ${description}` : ticketName,
           employeeNotes: solution ? `Solution: ${solution} | ClosedBy: ${closedBy}` : null,
-          status: status || 'OPEN',
+          status: validStatus,
+          priority: 'MEDIUM',
           customerId: customer.id,
           createdById: user.id,
           clientId: client.id,
@@ -114,14 +120,11 @@ export default async function TicketsPage() {
   ];
 
   const channels = [
-    { key: 'CALL_CENTER', name: 'Call Center' },
     { key: 'WHATSAPP', name: 'WhatsApp' },
     { key: 'INSTAGRAM', name: 'Instagram' },
     { key: 'X_TWITTER', name: 'X (Twitter)' },
     { key: 'GOOGLE_REVIEWS', name: 'Google Reviews' },
-    { key: 'FACEBOOK', name: 'Facebook' },
-    { key: 'SNAPCHAT', name: 'Snapchat' },
-    { key: 'TIKTOK', name: 'TikTok' },
+    { key: 'VOICE_CALL', name: 'Voice Call' },
     { key: 'EMAIL', name: 'Email' },
   ];
 
@@ -197,7 +200,7 @@ export default async function TicketsPage() {
                 <select name="status" className="w-full px-3 py-2 border border-stone-300 rounded-xl text-sm bg-white text-stone-900 focus:outline-none focus:border-[#FF7A00]">
                   <option value="OPEN" className="text-stone-900">{lang === 'ar' ? 'مفتوح' : 'Open'}</option>
                   <option value="PENDING" className="text-stone-900">{lang === 'ar' ? 'معلق' : 'Pending'}</option>
-                  <option value="WAITING_RESPONSE" className="text-stone-900">{lang === 'ar' ? 'بانتظار الرد' : 'Waiting Response'}</option>
+                  <option value="SOLVED" className="text-stone-900">{lang === 'ar' ? 'تم الحل' : 'Solved'}</option>
                   <option value="CLOSED" className="text-stone-900">{lang === 'ar' ? 'مغلق' : 'Closed'}</option>
                 </select>
               </div>
