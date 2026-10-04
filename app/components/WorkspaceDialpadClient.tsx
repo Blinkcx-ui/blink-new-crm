@@ -13,9 +13,7 @@ export default function WorkspaceDialpadClient({ lang }: { lang: string }) {
       .then((res) => res.json())
       .then((data) => {
         if (data.token) {
-          const newDevice = new Device(data.token, {
-            codecPreferences: [Device.Codec.Opus, Device.Codec.PCMU],
-          });
+          const newDevice = new Device(data.token); 
 
           newDevice.register();
           newDevice.on('registered', () => setCallStatus('Ready'));
