@@ -13,7 +13,7 @@ export default function WorkspaceDialpadClient({ lang }: { lang: string }) {
       .then((res) => res.json())
       .then((data) => {
         if (data.token) {
-          const newDevice = new Device(data.token); 
+          const newDevice = new Device(data.token);
 
           newDevice.register();
           newDevice.on('registered', () => setCallStatus('Ready'));
@@ -63,6 +63,12 @@ export default function WorkspaceDialpadClient({ lang }: { lang: string }) {
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && phoneNumber && callStatus !== 'In Call') {
+      handleCall();
+    }
+  };
+
   return (
     <div className="w-80 border-l border-stone-200 bg-stone-50 flex flex-col p-4 justify-between">
       <div>
@@ -76,11 +82,17 @@ export default function WorkspaceDialpadClient({ lang }: { lang: string }) {
           ></span>
         </div>
 
+        {/* Upgraded from <span> to <input> for full keyboard support */}
         <div className="bg-white border border-stone-300 rounded-xl p-3 mb-4 shadow-inner flex justify-between items-center">
-          <span className="text-[10px] text-stone-400 font-mono">{callStatus}</span>
-          <span className="text-lg font-mono font-bold text-stone-900 tracking-wider overflow-x-auto text-right">
-            {phoneNumber || '+966 5...'}
-          </span>
+          <span className="text-[10px] text-stone-400 font-mono w-16">{callStatus}</span>
+          <input
+            type="tel"
+            value={phoneNumber}
+            onChange={(e) => setPhoneNumber(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="+966 5..."
+            className="text-lg font-mono font-bold text-stone-900 tracking-wider text-right bg-transparent outline-none w-full ml-2"
+          />
         </div>
 
         <div className="grid grid-cols-3 gap-2">
